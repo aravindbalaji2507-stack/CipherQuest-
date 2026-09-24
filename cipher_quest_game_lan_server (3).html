@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CIPHER QUEST - DECODE THE HIDDEN SECRET</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            black: '#0a0d14',
+                            dark: '#0f172a',
+                            panel: '#1e293b',
+                            green: '#10b981',
+                            greenGlow: '#059669',
+                            cyan: '#06b6d4',
+                            red: '#ef4444',
+                            amber: '#f59e0b',
+                            purple: '#a855f7'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['Fira Code', 'Courier New', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Fira Code', monospace;
+            background-color: #05070a;
+            color: #34d399;
+            overflow-x: hidden;
+        }
+
+        /* Neon Glows */
+        .glow-green { text-shadow: 0 0 10px rgba(16, 185, 129, 0.7), 0 0 20px rgba(16, 185, 129, 0.4); }
+        .glow-cyan { text-shadow: 0 0 10px rgba(6, 182, 212, 0.7), 0 0 20px rgba(6, 182, 212, 0.4); }
+        .glow-red { text-shadow: 0 0 10px rgba(239, 68, 68, 0.7), 0 0 20px rgba(239, 68, 68, 0.4); }
+        .border-glow { box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+        .border-glow-cyan { box-shadow: 0 0 15px rgba(6, 182, 212, 0.3); }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b1329; }
+        ::-webkit-scrollbar-thumb { background: #059669; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b981; }
+
+        /* Matrix Canvas Background */
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            opacity: 0.18;
+            pointer-events: none;
+        }
+
+        /* Scanline Overlay */
+        .scanline {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 0, 0, 0.3) 50%,
+                rgba(0, 0, 0, 0.3)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+
+        /* Terminal Blink */
+        .cursor-blink {
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative selection:bg-emerald-500 selection:text-black">
+    <!-- Matrix Canvas Background -->
+    <canvas id="bgCanvas"></canvas>
+    
+    <!-- CRT Scanline Effect Overlay -->
+    <div class="scanline fixed inset-0 z-10"></div>
+
+    <!-- Main Dynamic Application Container -->
+    <div class="relative z-20 flex flex-col min-h-screen">
+        
+        <!-- TOP HEADER NAVBAR -->
+        <header class="border-b border-emerald-900/60 bg-slate-950/80 backdrop-blur-md px-4 py-3 flex flex-wrap justify-between items-center shadow-lg sticky top-0 z-30">
+            <div class="flex items-center space-x-3">
+                <div class="w-8 h-8 rounded border border-emerald-500/50 flex items-center justify-center bg-emerald-950/40">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg md:text-xl tracking-wider text-emerald-400 glow-green">CIPHER QUEST</h1>
+                    <p class="text-xs text-emerald-600/90 tracking-widest hidden sm:block">DECODE THE HIDDEN SECRET</p>
+                </div>
+            </div>
+
+            <!-- Global Timer & Quick Status -->
+            <div id="headerStats" class="hidden flex items-center space-x-4 text-xs md:text-sm">
+                <div class="bg-slate-900/90 border border-emerald-800/60 px-3 py-1.5 rounded flex items-center space-x-2">
+                    <span class="text-slate-400">TEAM:</span>
+                    <span id="navTeamName" class="font-semibold text-cyan-400">--</span>
+                </div>
+                <div class="bg-slate-900/90 border border-emerald-800/60 px-3 py-1.5 rounded flex items-center space-x-2">
+                    <span class="text-slate-400">TIME REMAINING:</span>
+                    <span id="navTimer" class="font-bold text-amber-400 font-mono text-base">30:00</span>
+                </div>
+                <button id="soundToggleBtn" onclick="toggleAudio()" class="bg-slate-900 border border-slate-700 hover:border-emerald-500 p-1.5 rounded text-slate-300 hover:text-emerald-400 transition" title="Toggle Sound Synth">
+                    🔊
+                </button>
+                <button onclick="toggleAdminPanel()" class="bg-purple-950/60 border border-purple-700/60 hover:bg-purple-900/80 p-1.5 rounded text-purple-300 text-xs tracking-wider transition" title="Admin Control (Ctrl+Shift+A)">
+                    ADMIN
+                </button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT ROUTER CONTAINERS -->
+        <main id="mainApp" class="flex-grow flex items-center justify-center p-3 sm:p-6 md:p-8">
+            
+            <!-- 1. REGISTRATION SCREEN -->
+            <section id="registrationScreen" class="w-full max-w-xl bg-slate-900/90 border border-emerald-500/40 rounded-xl p-6 md:p-8 backdrop-blur-lg border-glow transition-all">
+                <div class="text-center mb-6">
+                    <div class="inline-block p-3 bg-emerald-950/60 border border-emerald-500/30 rounded-full mb-3">
+                        <svg class="w-10 h-10 text-emerald-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-emerald-400 tracking-wide">SYSTEM ACCESS INITIATION</h2>
+                    <p class="text-xs text-slate-400 mt-1">Register your two-person unit to commence security decryption protocol.</p>
+                </div>
+
+                <form id="regForm" onsubmit="handleRegistration(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-emerald-500 uppercase tracking-wider mb-1">Squad / Team Identifier *</label>
+                        <input type="text" id="teamName" required placeholder="e.g. CYBER_PHANTOMS" class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-2.5 text-sm text-emerald-300 outline-none transition font-mono">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Operative 1 Name *</label>
+                            <input type="text" id="student1" required placeholder="Agent Alpha" class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded p-2.5 text-sm text-emerald-300 outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 uppercase tracking-wider mb-1">Operative 2 Name *</label>
+                            <input type="text" id="student2" required placeholder="Agent Bravo" class="w-full bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded p-2.5 text-sm text-emerald-300 outline-none font-mono">
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/60 border border-slate-800 p-3 rounded text-xs text-slate-400 space-y-1">
+                        <p class="text-emerald-400 font-semibold">Mission Briefing Guidelines:</p>
+                        <ul class="list-disc list-inside space-y-0.5 text-slate-400">
+                            <li>Round 1: 15 Core Decryption Locks (30-Minute Hard Limit)</li>
+                            <li>Round 2: 10 Advanced Forensics Locks (Unlocked upon R1 Completion)</li>
+                            <li>Incorrect attempts incur a mandatory lockout timer.</li>
+                        </ul>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold uppercase tracking-wider rounded shadow-lg transition duration-200 transform hover:-translate-y-0.5 active:translate-y-0">
+                        Initiate Terminal Access
+                    </button>
+                </form>
+            </section>
+
+            <!-- 2. GAME DASHBOARD (ROUNDS 1 & 2) -->
+            <section id="gameScreen" class="hidden w-full max-w-6xl flex flex-col gap-5">
+                
+                <!-- Stage Header Bar -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 backdrop-blur-md">
+                    <div class="flex items-center space-x-3">
+                        <span id="roundBadge" class="bg-emerald-950 border border-emerald-500/50 text-emerald-400 text-xs px-3 py-1 rounded-full font-semibold">
+                            ROUND 1 ACTIVE
+                        </span>
+                        <h2 id="stageTitle" class="text-lg font-bold text-white tracking-wide">
+                            Lock Terminal Access
+                        </h2>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="flex items-center space-x-3 flex-grow max-w-xs">
+                        <div class="w-full bg-slate-950 border border-slate-800 rounded-full h-3 overflow-hidden">
+                            <div id="progressBar" class="bg-emerald-500 h-full w-0 transition-all duration-300"></div>
+                        </div>
+                        <span id="progressText" class="text-xs font-mono text-emerald-400 font-bold">0/15</span>
+                    </div>
+                </div>
+
+                <!-- Main Interactive Grid: Lock Matrix + Active Challenge Container -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    
+                    <!-- Left Sidebar: Lock Selector Grid (15 for R1, 10 for R2) -->
+                    <div class="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-xl p-4 backdrop-blur-md">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex justify-between">
+                            <span>Decryption Locks</span>
+                            <span id="roundModeLabel" class="text-emerald-400">R1 Matrix</span>
+                        </h3>
+                        <div id="lockGrid" class="grid grid-cols-5 gap-2 max-h-[220px] lg:max-h-[500px] overflow-y-auto p-1">
+                            <!-- Dynamically populated via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Dynamic Scrollable Lock Card Area -->
+                    <div class="lg:col-span-8 bg-slate-900/95 border border-emerald-500/30 rounded-xl p-5 md:p-6 backdrop-blur-xl border-glow flex flex-col justify-between min-h-[460px] max-h-[78vh] overflow-y-auto">
+                        
+                        <div>
+                            <!-- Lock Title & Meta Info -->
+                            <div class="flex justify-between items-start border-b border-slate-800 pb-3 mb-4">
+                                <div>
+                                    <span id="lockCategory" class="text-[10px] font-bold text-cyan-400 uppercase tracking-widest bg-cyan-950/60 border border-cyan-800 px-2 py-0.5 rounded">Category</span>
+                                    <h3 id="lockTitle" class="text-xl font-bold text-emerald-400 mt-1">Lock Security Protocol</h3>
+                                </div>
+                                <span id="lockStatus" class="text-xs font-mono px-2.5 py-1 rounded bg-amber-950/60 border border-amber-600/60 text-amber-300">UNLOCKED</span>
+                            </div>
+
+                            <!-- Lock Description & Riddle Box -->
+                            <div class="bg-slate-950/80 border border-slate-800/80 rounded-lg p-4 mb-4 text-sm leading-relaxed text-slate-300 font-mono overflow-y-auto max-h-[200px]">
+                                <div id="lockQuestion" class="whitespace-pre-line">
+                                    Loading encrypted vector details...
+                                </div>
+                            </div>
+
+                            <!-- Interactive Keypad / Hint Area -->
+                            <div id="hintBox" class="hidden mb-4 bg-slate-950/90 border border-amber-800/40 rounded p-3 text-xs text-amber-300/90">
+                                🔑 <span class="font-bold">HINT:</span> <span id="hintText">...</span>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Form Area (Always Kept Intact and Scaled) -->
+                        <div class="pt-2 border-t border-slate-800/80">
+                            <form id="unlockForm" onsubmit="handleUnlockSubmit(event)" class="space-y-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Decryption Key / Flag Input:</label>
+                                    <div class="flex space-x-2">
+                                        <input type="text" id="answerInput" autocomplete="off" placeholder="Enter key..." class="flex-grow bg-slate-950 border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded p-2.5 text-sm font-mono text-emerald-300 uppercase outline-none transition">
+                                        <button type="submit" id="submitBtn" class="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold px-5 py-2.5 rounded transition uppercase text-sm tracking-wider flex items-center justify-center min-w-[100px]">
+                                            EXECUTE
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center text-xs">
+                                    <button type="button" onclick="revealHint()" class="text-amber-400 hover:text-amber-300 underline font-mono">
+                                        Request Hint (-50 Pts)
+                                    </button>
+                                    <span id="attemptTimer" class="text-red-400 font-mono font-semibold hidden">Lockout: <span id="lockoutSecs">0</span>s</span>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. RESULTS / SCOREBOARD SCREEN -->
+            <section id="resultsScreen" class="hidden w-full max-w-2xl bg-slate-900/95 border border-emerald-500/50 rounded-xl p-6 md:p-8 backdrop-blur-xl border-glow text-center">
+                <div class="inline-block p-4 bg-emerald-950/60 border border-emerald-500/40 rounded-full mb-4">
+                    <svg class="w-16 h-16 text-emerald-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                    </svg>
+                </div>
+                
+                <h2 class="text-3xl font-extrabold text-emerald-400 glow-green mb-1">DECRYPTION SUCCESSFUL</h2>
+                <p class="text-slate-400 text-xs tracking-widest uppercase mb-6">Cipher Quest Security Protocol Clearance Granted</p>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-950 border border-slate-800 p-4 rounded-lg mb-6 text-left">
+                    <div>
+                        <div class="text-[10px] text-slate-500 uppercase">Team</div>
+                        <div id="resTeam" class="font-bold text-emerald-400 font-mono text-sm truncate">--</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-500 uppercase">Total Score</div>
+                        <div id="resScore" class="font-bold text-amber-400 font-mono text-sm">0 Pts</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-500 uppercase">Time Elapsed</div>
+                        <div id="resTime" class="font-bold text-cyan-400 font-mono text-sm">00:00</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] text-slate-500 uppercase">Locks Unlocked</div>
+                        <div id="resLocks" class="font-bold text-emerald-400 font-mono text-sm">25/25</div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-950/70 border border-emerald-900/50 rounded-lg mb-6 text-xs text-left font-mono space-y-1 text-slate-300">
+                    <p class="text-emerald-400 font-bold">Verification Hash:</p>
+                    <p id="resHash" class="break-all text-[11px] text-slate-500">HASH_COMPUTING...</p>
+                </div>
+
+                <div class="flex flex-wrap gap-3 justify-center">
+                    <button onclick="downloadReport()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded uppercase text-xs tracking-wider transition">
+                        Export Clearance Certificate
+                    </button>
+                    <button onclick="restartGame()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded uppercase text-xs tracking-wider transition">
+                        Reset Session
+                    </button>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- ADMIN MODAL OVERLAY -->
+        <div id="adminModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-purple-500/60 rounded-xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+                <div class="flex justify-between items-center border-b border-purple-900/60 pb-3">
+                    <h3 class="text-lg font-bold text-purple-400 flex items-center space-x-2">
+                        <span>🛡️ ADMIN CONTROL PANEL</span>
+                    </h3>
+                    <button onclick="toggleAdminPanel()" class="text-slate-400 hover:text-white font-mono">✕</button>
+                </div>
+
+                <div class="space-y-3 text-xs font-mono">
+                    <div class="bg-slate-950 p-3 rounded border border-slate-800 space-y-1">
+                        <div class="text-purple-300 font-semibold">Active State Summary</div>
+                        <div class="text-slate-400">Team: <span id="admTeam" class="text-white">--</span></div>
+                        <div class="text-slate-400">Current Stage: <span id="admStage" class="text-white">Round 1</span></div>
+                        <div class="text-slate-400">Time Left: <span id="admTime" class="text-white">--</span></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="adminBypassLock()" class="p-2.5 bg-purple-950/80 border border-purple-700/60 hover:bg-purple-900 text-purple-200 rounded font-semibold text-center transition">
+                            🔓 Bypass Current Lock
+                        </button>
+                        <button onclick="adminAddMinutes(5)" class="p-2.5 bg-purple-950/80 border border-purple-700/60 hover:bg-purple-900 text-purple-200 rounded font-semibold text-center transition">
+                            ⏰ Add +5 Minutes
+                        </button>
+                        <button onclick="adminUnlockRound2()" class="p-2.5 bg-purple-950/80 border border-purple-700/60 hover:bg-purple-900 text-purple-200 rounded font-semibold text-center transition">
+                            ⚡ Force Unlock Round 2
+                        </button>
+                        <button onclick="adminResetAll()" class="p-2.5 bg-red-950/80 border border-red-700/60 hover:bg-red-900 text-red-200 rounded font-semibold text-center transition">
+                            ⚠️ Wipe All Storage
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-2 text-right">
+                    <button onclick="toggleAdminPanel()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded text-xs hover:bg-slate-700">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="border-t border-slate-900 bg-slate-950/90 text-center py-2 text-[11px] text-slate-600 font-mono">
+            CIPHER QUEST ARCHITECTURE &bull; STANDALONE GITHUB PAGES COMPATIBLE EDITION
+        </footer>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. GAME DATA & LOCK DEFINITIONS (ROUND 1: 15 LOCKS, ROUND 2: 10 LOCKS)
+           ========================================================================== */
+
+        const ROUND_1_LOCKS = [
+            {
+                id: 1,
+                title: "Caesar's Shift Protocol",
+                category: "Cryptography",
+                question: "An intercepted encrypted transmission reads: 'KHOOR ZRUOG'. The cipher uses a Caesar shift of 3 positions back. Decrypt the original plaintext string.",
+                answer: "HELLO WORLD",
+                hint: "Shift each letter backward by 3 positions in the alphabet (K -> H)."
+            },
+            {
+                id: 2,
+                title: "Binary System Intercept",
+                category: "Encoding",
+                question: "Decoded system binary buffer stream:\n01000011 01011001 01000010 01000101 01010010\nConvert this binary sequence into ASCII plaintext.",
+                answer: "CYBER",
+                hint: "01000011 = 67 in ASCII ('C'). Convert each 8-bit group."
+            },
+            {
+                id: 3,
+                title: "Hexadecimal Payload",
+                category: "Forensics",
+                question: "Hex dump extracted from volatile memory core:\n53 45 43 55 52 45\nConvert these hex bytes to readable string text.",
+                answer: "SECURE",
+                hint: "53 = 'S', 45 = 'E', 43 = 'C'..."
+            },
+            {
+                id: 4,
+                title: "Base64 Web Artifact",
+                category: "Web Security",
+                question: "Base64 string found in cookie header:\n'Q0lQSEVSX01BU1RFUg=='\nDecode this payload to get the key.",
+                answer: "CIPHER_MASTER",
+                hint: "Standard Base64 decoding. Equals 'CIPHER_MASTER'."
+            },
+            {
+                id: 5,
+                title: "Atbash Substitution",
+                category: "Classic Ciphers",
+                question: "Atbash Cipher reverses the alphabet (A<->Z, B<->Y). Decrypt the cipher text:\n'ZTFNS'",
+                answer: "AUNMH",
+                hint: "A becomes Z, Z becomes A. Apply reverse alphabet mapping."
+            },
+            {
+                id: 6,
+                title: "MD5 Hash Search",
+                category: "Hashing",
+                question: "Find the 4-digit numeric PIN whose MD5 hash matches:\n'81dc9bdb52d04dc20036dbd8313ed055'",
+                answer: "1234",
+                hint: "It is a standard 4-digit sequence starting with 1..."
+            },
+            {
+                id: 7,
+                title: "Reverse String Defense",
+                category: "Data Integrity",
+                question: "Malware obfuscated payload reversed:\n'T3RDU0FfS0NBSEM'\nReverse this text first, then read the word.",
+                answer: "CHACK_ASCOT",
+                hint: "Turn the string completely backwards."
+            },
+            {
+                id: 8,
+                title: "Vigenère Cipher Core",
+                category: "Cryptography",
+                question: "Ciphertext: 'RIJVS' encrypted with key 'KEY' using Vigenere Cipher. Decrypt to plaintext.",
+                answer: "HELLO",
+                hint: "Subtract key letter values (K, E, Y) repeatedly from the ciphertext."
+            },
+            {
+                id: 9,
+                title: "Morse Code Transmission",
+                category: "Signals",
+                question: "Signal log:\n- - - .-. .- - . - - - -.\nTranslate Morse: '--- .-. .- - . -- - --' (ORATEMTM) -> Wait, decode: '... --- ...' -> SOS",
+                answer: "SOS",
+                hint: "Three dots, three dashes, three dots."
+            },
+            {
+                id: 10,
+                title: "ROT13 Communication",
+                category: "Obfuscation",
+                question: "ROT13 encoded message: 'PBZZNAQ'\nRotate letters by 13 positions to reveal the command.",
+                answer: "COMMAND",
+                hint: "P (+13) = C, B (+13) = O..."
+            },
+            {
+                id: 11,
+                title: "Steganography Text Flag",
+                category: "Steganography",
+                question: "Extract capital letters from the message:\n'Quiet Systems Integrity Network Operational Signal Standard'",
+                answer: "QSINSS",
+                hint: "Q-S-I-N-S-S"
+            },
+            {
+                id: 12,
+                title: "XOR Key Operation",
+                category: "Cryptanalysis",
+                question: "XOR byte 0x41 ('A') with key 0x0F. What hex byte result do you obtain? (Format as 2-digit hex like 4E)",
+                answer: "4E",
+                hint: "0x41 (01000001) XOR 0x0F (00001111) = 0x4E (01001110)."
+            },
+            {
+                id: 13,
+                title: "SQL Injection Vector",
+                category: "Application Security",
+                question: "What classic SQL authentication bypass payload completes:\nSELECT * FROM users WHERE user='' OR '1'='1' AND pass='___'?",
+                answer: "' OR '1'='1",
+                hint: "' OR '1'='1"
+            },
+            {
+                id: 14,
+                title: "SHA-256 Digest Identification",
+                category: "Hashing",
+                question: "How many hexadecimal characters are in a standard unformatted SHA-256 hash string?",
+                answer: "64",
+                hint: "256 bits divided by 4 bits per hex char."
+            },
+            {
+                id: 15,
+                title: "Final Round 1 Vault Key",
+                category: "System Core",
+                question: "Combine the first letters of all previous categories in order:\n1. Cryptography (C)\n2. Encoding (E)\n3. Forensics (F)\n4. Web Security (W)\nAnswer: CEFW",
+                answer: "CEFW",
+                hint: "C + E + F + W"
+            }
+        ];
+
+        const ROUND_2_LOCKS = [
+            {
+                id: 101,
+                title: "Network Port Recon",
+                category: "Network Security",
+                question: "What standard port is used for secure SSH remote access terminal protocols?",
+                answer: "22",
+                hint: "Standard port number below 25."
+            },
+            {
+                id: 102,
+                title: "RSA Public Exponent",
+                category: "Asymmetric Crypto",
+                question: "What is the most widely used default public prime exponent (e) in RSA key generation?",
+                answer: "65537",
+                hint: "2^16 + 1"
+            },
+            {
+                id: 103,
+                title: "Diffie-Hellman Key Exchange",
+                category: "Key Exchange",
+                question: "If public prime p=23, generator g=5, private key a=6, compute Alice's public value A = (g^a) mod p.",
+                answer: "8",
+                hint: "5^6 = 15625. 15625 mod 23 = 8."
+            },
+            {
+                id: 104,
+                title: "DNS Exfiltration Record",
+                category: "Forensics",
+                question: "Which DNS record type is used for domain text verification and frequently abused for data exfiltration?",
+                answer: "TXT",
+                hint: "3 letter record name for arbitrary text."
+            },
+            {
+                id: 105,
+                title: "Buffer Overflow Return Pointer",
+                category: "Exploitation",
+                question: "What register in x86 32-bit architecture holds the Extended Instruction Pointer?",
+                answer: "EIP",
+                hint: "3 letters starting with E."
+            },
+            {
+                id: 106,
+                title: "Kerberos Authentication",
+                category: "Identity",
+                question: "What ticket-granting service acronym component issues service tickets in Kerberos? (TGT)",
+                answer: "TGT",
+                hint: "Ticket Granting Ticket abbreviation."
+            },
+            {
+                id: 107,
+                title: "TLS Handshake Cryptography",
+                category: "Web Security",
+                question: "What technique guarantees past session keys remain secure even if server private key is compromised? (Abbreviation: PFS)",
+                answer: "PFS",
+                hint: "Perfect Forward Secrecy."
+            },
+            {
+                id: 108,
+                title: "Polyalphabetic Cipher",
+                category: "Cryptanalysis",
+                question: "What statistical test calculates letter frequency coincidence to break polyalphabetic ciphers?",
+                answer: "KASISKI",
+                hint: "Kasiski examination method."
+            },
+            {
+                id: 109,
+                title: "Wireshark Packet Header",
+                category: "Packet Analysis",
+                question: "What 4-byte Magic Number identifies standard pcap packet capture files in Hex? (Format: D4C3B2A1)",
+                answer: "D4C3B2A1",
+                hint: "D4C3B2A1"
+            },
+            {
+                id: 110,
+                title: "Ultimate Master System Flag",
+                category: "Grand Finale",
+                question: "Enter the final Master clearance passphrase: 'CIPHER_QUEST_CHAMPION_2026'",
+                answer: "CIPHER_QUEST_CHAMPION_2026",
+                hint: "CIPHER_QUEST_CHAMPION_2026"
+            }
+        ];
+
+        /* ==========================================================================
+           2. STATE MANAGEMENT & AUDIO SYNTHESIZER
+           ========================================================================== */
+
+        let gameState = {
+            teamName: '',
+            student1: '',
+            student2: '',
+            currentRound: 1, // 1 or 2
+            currentLockIndex: 0,
+            unlockedR1: [],
+            unlockedR2: [],
+            score: 1000,
+            timerSeconds: 1800, // 30 mins
+            timerInterval: null,
+            lockoutSeconds: 0,
+            lockoutInterval: null,
+            soundEnabled: true
+        };
+
+        // Web Audio API Synthesizer (No external assets required)
+        let audioCtx = null;
+
+        function playSynthSound(type) {
+            if (!gameState.soundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'success') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.2);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(80, now + 0.25);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (e) {
+                console.log("Audio play error", e);
+            }
+        }
+
+        function toggleAudio() {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            const btn = document.getElementById('soundToggleBtn');
+            btn.innerText = gameState.soundEnabled ? '🔊' : '🔇';
+        }
+
+        /* ==========================================================================
+           3. APPLICATION INITIALIZATION & ROUTING
+           ========================================================================== */
+
+        window.onload = function() {
+            initMatrixBg();
+            loadLocalStorageState();
+            setupKeyboardShortcuts();
+        };
+
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // Admin shortcut Ctrl + Shift + A
+                if (e.ctrlKey && e.shiftKey && e.code === 'KeyA') {
+                    e.preventDefault();
+                    toggleAdminPanel();
+                }
+            });
+        }
+
+        function loadLocalStorageState() {
+            const saved = localStorage.getItem('cipher_quest_save');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    gameState = { ...gameState, ...parsed };
+                    if (gameState.teamName) {
+                        showGameScreen();
+                        return;
+                    }
+                } catch(e) {}
+            }
+            showRegistrationScreen();
+        }
+
+        function saveLocalStorageState() {
+            localStorage.setItem('cipher_quest_save', JSON.stringify(gameState));
+        }
+
+        function showRegistrationScreen() {
+            document.getElementById('registrationScreen').classList.remove('hidden');
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.add('hidden');
+            document.getElementById('headerStats').classList.add('hidden');
+        }
+
+        function showGameScreen() {
+            document.getElementById('registrationScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('resultsScreen').classList.add('hidden');
+            document.getElementById('headerStats').classList.remove('hidden');
+
+            document.getElementById('navTeamName').innerText = gameState.teamName;
+
+            startMainTimer();
+            renderLockGrid();
+            loadCurrentLock();
+        }
+
+        function showResultsScreen() {
+            document.getElementById('registrationScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
+
+            clearInterval(gameState.timerInterval);
+
+            document.getElementById('resTeam').innerText = gameState.teamName;
+            document.getElementById('resScore').innerText = `${gameState.score} Pts`;
+            const elapsedSecs = 1800 - gameState.timerSeconds;
+            const mins = Math.floor(elapsedSecs / 60);
+            const secs = elapsedSecs % 60;
+            document.getElementById('resTime').innerText = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+            
+            const totalUnlocked = gameState.unlockedR1.length + gameState.unlockedR2.length;
+            document.getElementById('resLocks').innerText = `${totalUnlocked}/25`;
+
+            // Compute static hash
+            const hashStr = `CQ-${gameState.teamName}-${gameState.score}-${Date.now()}`.toUpperCase();
+            document.getElementById('resHash').innerText = hashStr;
+        }
+
+        /* ==========================================================================
+           4. REGISTRATION & GAME FLOW CONTROLLERS
+           ========================================================================== */
+
+        function handleRegistration(e) {
+            e.preventDefault();
+            playSynthSound('click');
+            
+            const team = document.getElementById('teamName').value.trim();
+            const s1 = document.getElementById('student1').value.trim();
+            const s2 = document.getElementById('student2').value.trim();
+
+            if (!team || !s1 || !s2) return;
+
+            gameState.teamName = team;
+            gameState.student1 = s1;
+            gameState.student2 = s2;
+            gameState.score = 1000;
+            gameState.timerSeconds = 1800;
+            gameState.unlockedR1 = [];
+            gameState.unlockedR2 = [];
+            gameState.currentRound = 1;
+            gameState.currentLockIndex = 0;
+
+            saveLocalStorageState();
+            showGameScreen();
+        }
+
+        function startMainTimer() {
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            
+            gameState.timerInterval = setInterval(() => {
+                if (gameState.timerSeconds > 0) {
+                    gameState.timerSeconds--;
+                    updateTimerDisplay();
+                } else {
+                    clearInterval(gameState.timerInterval);
+                    alert("⚠️ TIME EXPIRED! Security Lockdown Activated.");
+                    showResultsScreen();
+                }
+            }, 1000);
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(gameState.timerSeconds / 60);
+            const secs = gameState.timerSeconds % 60;
+            const str = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            document.getElementById('navTimer').innerText = str;
+        }
+
+        /* ==========================================================================
+           5. LOCK MATRIX & UNLOCK LOGIC
+           ========================================================================== */
+
+        function getCurrentLocksArray() {
+            return gameState.currentRound === 1 ? ROUND_1_LOCKS : ROUND_2_LOCKS;
+        }
+
+        function getCurrentUnlockedArray() {
+            return gameState.currentRound === 1 ? gameState.unlockedR1 : gameState.unlockedR2;
+        }
+
+        function renderLockGrid() {
+            const locks = getCurrentLocksArray();
+            const unlockedList = getCurrentUnlockedArray();
+            const gridContainer = document.getElementById('lockGrid');
+            gridContainer.innerHTML = '';
+
+            document.getElementById('roundBadge').innerText = gameState.currentRound === 1 ? 'ROUND 1 ACTIVE' : 'ROUND 2 ACTIVE';
+            document.getElementById('roundModeLabel').innerText = gameState.currentRound === 1 ? 'R1 Matrix' : 'R2 Advanced';
+
+            locks.forEach((lock, index) => {
+                const isUnlocked = unlockedList.includes(lock.id);
+                const isActive = index === gameState.currentLockIndex;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => { playSynthSound('click'); selectLock(index); };
+
+                let btnClasses = "h-12 rounded border text-xs font-bold font-mono transition flex flex-col items-center justify-center relative ";
+
+                if (isUnlocked) {
+                    btnClasses += "bg-emerald-950/80 border-emerald-500 text-emerald-400 ";
+                } else if (isActive) {
+                    btnClasses += "bg-cyan-950 border-cyan-400 text-cyan-300 ring-2 ring-cyan-500/50 ";
+                } else {
+                    btnClasses += "bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-600 ";
+                }
+
+                btn.className = btnClasses;
+                btn.innerHTML = `
+                    <span>#${index + 1}</span>
+                    <span class="text-[9px] font-normal">${isUnlocked ? '✓' : '🔒'}</span>
+                `;
+
+                gridContainer.appendChild(btn);
+            });
+
+            // Update Progress Bar
+            const total = locks.length;
+            const done = unlockedList.length;
+            const pct = Math.round((done / total) * 100);
+            document.getElementById('progressBar').style.width = `${pct}%`;
+            document.getElementById('progressText').innerText = `${done}/${total}`;
+        }
+
+        function selectLock(index) {
+            gameState.currentLockIndex = index;
+            loadCurrentLock();
+            renderLockGrid();
+        }
+
+        function loadCurrentLock() {
+            const locks = getCurrentLocksArray();
+            const unlockedList = getCurrentUnlockedArray();
+            const currentLock = locks[gameState.currentLockIndex];
+
+            if (!currentLock) return;
+
+            document.getElementById('lockCategory').innerText = currentLock.category;
+            document.getElementById('lockTitle').innerText = `#${currentLock.id} - ${currentLock.title}`;
+            document.getElementById('lockQuestion').innerText = currentLock.question;
+
+            const isUnlocked = unlockedList.includes(currentLock.id);
+            const statusEl = document.getElementById('lockStatus');
+
+            if (isUnlocked) {
+                statusEl.className = "text-xs font-mono px-2.5 py-1 rounded bg-emerald-950/80 border border-emerald-500 text-emerald-300";
+                statusEl.innerText = "UNLOCKED ✓";
+            } else {
+                statusEl.className = "text-xs font-mono px-2.5 py-1 rounded bg-amber-950/60 border border-amber-600/60 text-amber-300";
+                statusEl.innerText = "LOCKED 🔒";
+            }
+
+            document.getElementById('answerInput').value = '';
+            document.getElementById('hintBox').classList.add('hidden');
+            document.getElementById('hintText').innerText = currentLock.hint;
+        }
+
+        function revealHint() {
+            playSynthSound('click');
+            const hintBox = document.getElementById('hintBox');
+            if (hintBox.classList.contains('hidden')) {
+                hintBox.classList.remove('hidden');
+                gameState.score = Math.max(0, gameState.score - 50);
+                saveLocalStorageState();
+            }
+        }
+
+        function handleUnlockSubmit(e) {
+            e.preventDefault();
+            if (gameState.lockoutSeconds > 0) return;
+
+            const locks = getCurrentLocksArray();
+            const unlockedList = getCurrentUnlockedArray();
+            const currentLock = locks[gameState.currentLockIndex];
+            const userInput = document.getElementById('answerInput').value.trim();
+
+            if (!userInput) return;
+
+            if (userInput.toUpperCase() === currentLock.answer.toUpperCase()) {
+                // Correct Answer
+                playSynthSound('success');
+                if (!unlockedList.includes(currentLock.id)) {
+                    unlockedList.push(currentLock.id);
+                    gameState.score += 100;
+                }
+
+                saveLocalStorageState();
+                renderLockGrid();
+                loadCurrentLock();
+
+                // Check Round Transitions
+                checkRoundProgression();
+            } else {
+                // Wrong Answer
+                playSynthSound('error');
+                triggerLockoutPenalty();
+            }
+        }
+
+        function triggerLockoutPenalty() {
+            gameState.lockoutSeconds = 10; // 10 second delay on wrong answer
+            const submitBtn = document.getElementById('submitBtn');
+            const timerEl = document.getElementById('attemptTimer');
+            const secsEl = document.getElementById('lockoutSecs');
+
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            timerEl.classList.remove('hidden');
+
+            if (gameState.lockoutInterval) clearInterval(gameState.lockoutInterval);
+
+            gameState.lockoutInterval = setInterval(() => {
+                gameState.lockoutSeconds--;
+                secsEl.innerText = gameState.lockoutSeconds;
+
+                if (gameState.lockoutSeconds <= 0) {
+                    clearInterval(gameState.lockoutInterval);
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    timerEl.classList.add('hidden');
+                }
+            }, 1000);
+        }
+
+        function checkRoundProgression() {
+            if (gameState.currentRound === 1) {
+                if (gameState.unlockedR1.length === ROUND_1_LOCKS.length) {
+                    alert("🎉 ROUND 1 COMPLETE! Escalating to Round 2 Cyber Forensics.");
+                    gameState.currentRound = 2;
+                    gameState.currentLockIndex = 0;
+                    saveLocalStorageState();
+                    renderLockGrid();
+                    loadCurrentLock();
+                }
+            } else if (gameState.currentRound === 2) {
+                if (gameState.unlockedR2.length === ROUND_2_LOCKS.length) {
+                    alert("🏆 ALL LOCKS DECRYPTED! Proceeding to Final Clearance Certification.");
+                    showResultsScreen();
+                }
+            }
+        }
+
+        /* ==========================================================================
+           6. ADMIN CONTROLS & UTILITIES
+           ========================================================================== */
+
+        function toggleAdminPanel() {
+            const modal = document.getElementById('adminModal');
+            modal.classList.toggle('hidden');
+
+            if (!modal.classList.contains('hidden')) {
+                document.getElementById('admTeam').innerText = gameState.teamName || 'N/A';
+                document.getElementById('admStage').innerText = `Round ${gameState.currentRound}`;
+                document.getElementById('admTime').innerText = `${Math.floor(gameState.timerSeconds/60)}m ${gameState.timerSeconds%60}s`;
+            }
+        }
+
+        function adminBypassLock() {
+            const locks = getCurrentLocksArray();
+            const unlockedList = getCurrentUnlockedArray();
+            const currentLock = locks[gameState.currentLockIndex];
+
+            if (currentLock && !unlockedList.includes(currentLock.id)) {
+                unlockedList.push(currentLock.id);
+                saveLocalStorageState();
+                renderLockGrid();
+                loadCurrentLock();
+                checkRoundProgression();
+                alert(`Unlocked Lock #${currentLock.id} via Admin Override.`);
+            }
+        }
+
+        function adminAddMinutes(mins) {
+            gameState.timerSeconds += (mins * 60);
+            updateTimerDisplay();
+            saveLocalStorageState();
+            alert(`Added +${mins} minutes to system timer.`);
+        }
+
+        function adminUnlockRound2() {
+            gameState.currentRound = 2;
+            gameState.currentLockIndex = 0;
+            saveLocalStorageState();
+            renderLockGrid();
+            loadCurrentLock();
+            toggleAdminPanel();
+            alert("Force escalated to Round 2.");
+        }
+
+        function adminResetAll() {
+            if (confirm("Are you sure you want to wipe local game state?")) {
+                localStorage.removeItem('cipher_quest_save');
+                location.reload();
+            }
+        }
+
+        function downloadReport() {
+            const report = `===================================================
+CIPHER QUEST SECURITY CLEARANCE CERTIFICATE
+===================================================
+Team Identifier : ${gameState.teamName}
+Operative 1     : ${gameState.student1}
+Operative 2     : ${gameState.student2}
+Final Score     : ${gameState.score} Pts
+Time Remaining  : ${gameState.timerSeconds} Seconds
+Round 1 Cleared : ${gameState.unlockedR1.length} / 15
+Round 2 Cleared : ${gameState.unlockedR2.length} / 10
+Timestamp       : ${new Date().toISOString()}
+===================================================`;
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `CIPHER_QUEST_CLEARANCE_${gameState.teamName}.txt`;
+            a.click();
+        }
+
+        function restartGame() {
+            if (confirm("Reset current game session?")) {
+                localStorage.removeItem('cipher_quest_save');
+                location.reload();
+            }
+        }
+
+        /* ==========================================================================
+           7. VISUAL MATRIX BACKGROUND CANVAS
+           ========================================================================== */
+
+        function initMatrixBg() {
+            const canvas = document.getElementById('bgCanvas');
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            const chars = '0123456789ABCDEFABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const fontSize = 14;
+            const columns = Math.floor(canvas.width / fontSize);
+            const drops = Array(columns).fill(1);
+
+            function draw() {
+                ctx.fillStyle = 'rgba(5, 7, 10, 0.08)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = '#059669';
+                ctx.font = `${fontSize}px monospace`;
+
+                for (let i = 0; i < drops.length; i++) {
+                    const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+
+            setInterval(draw, 33);
+        }
+    </script>
+</body>
+</html>
